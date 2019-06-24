@@ -73,6 +73,20 @@ def check_rnn_consistency(cell1, cell2, T, N, I, H, grad_req, rtol=1e-2, atol=1e
         assert(mod1.get_input_grads()[0] == None)
         assert(mod2.get_input_grads()[0] == None)
 
+@with_seed()
+def test_new_softmax():
+    for ndim in range(1, 5):
+        shape = np.random.randint(1, 5, size=ndim)
+        axis = np.random.randint(-ndim, ndim)
+        data = np.random.uniform(-2, 2, size=shape)
+        sym = mx.sym.softmax(axis=axis)
+        expected_fwd = np_softmax(data, axis=axis)
+        expected_bwd = np.zeros(shape)
+        check_symbolic_forward(sym, [data], [expected_fwd])
+        for req in ['null', 'add', 'write']:
+            check_symbolic_backward(sym, [data], [np.ones(expected_fwd.shape)], [expected_bwd],
+                                    rtol=1e-2, atol=1e-3, grad_req=req)
+        check_numeric_gradient(sym, [data], rtol=1e-2, atol=1e-3)
 
 
 @with_seed()
@@ -4899,20 +4913,7 @@ def test_softmin():
                 check_numeric_gradient(sym, [data], rtol=rtol, atol=atol, dtype=dtype)
 
 
-@with_seed()
-def test_new_softmax():
-    for ndim in range(1, 5):
-        shape = np.random.randint(1, 5, size=ndim)
-        axis = np.random.randint(-ndim, ndim)
-        data = np.random.uniform(-2, 2, size=shape)
-        sym = mx.sym.softmax(axis=axis)
-        expected_fwd = np_softmax(data, axis=axis)
-        expected_bwd = np.zeros(shape)
-        check_symbolic_forward(sym, [data], [expected_fwd])
-        for req in ['null', 'add', 'write']:
-            check_symbolic_backward(sym, [data], [np.ones(expected_fwd.shape)], [expected_bwd],
-                                    rtol=1e-2, atol=1e-3, grad_req=req)
-        check_numeric_gradient(sym, [data], rtol=1e-2, atol=1e-3)
+
 
 
 @with_seed()
